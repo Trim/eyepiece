@@ -97,8 +97,9 @@ Eyepiece::Eyepiece ( QWidget *parent, Qt::WFlags f ) :
 
 bool Eyepiece::libsFound()
 {
-    return QFile::exists("/usr/lib/libdjvulibre.so.21") &&
-                QFile::exists("/usr/lib/libfontconfig.so.1");
+    // First parenthesis for Squeeze, second one for multiarch in Wheezy
+    return  (QFile::exists("/usr/lib/libdjvulibre.so.21") && QFile::exists("/usr/lib/libfontconfig.so.1"))
+		|| (QFile::exists("/usr/lib/arm-linux-gnueabihf/libdjvulibre.so.21") && QFile::exists("/usr/lib/arm-linux-gnueabihf/libfontconfig.so.1"));
 }
 
 void Eyepiece::checkLibs()
@@ -386,17 +387,19 @@ bool Eyepiece::loadPlugin()
 	unloadPlugin();
 
 	QDir pluginDirectory ( qApp->applicationDirPath() );
-	qWarning() << qApp->applicationDirPath();
+	qWarning() << "Plugin loader :  working with application path : " <<  qApp->applicationDirPath();
           
         QString fName;
-	if ( contentID == mime_pdf )        // TODO: refine
+	if ( contentID.contains( mime_pdf ) )        // TODO: refine
         {
                 fName = "libpdfplugin.so";
         }
-	else if ( contentID == mime_djvu )
+	else if ( contentID.contains( mime_djvu ) )
                 fName = "libdjvuplugin.so";
-	else
+	else{
+		qWarning() << "Plugin loader : unable to choose good plugin for file with this mimetype : " << contentID;
 		return false;
+	}
         QString fPath1 = qApp->applicationDirPath() + "/../plugins/eyepiece/";
         QString fPath2 = qApp->applicationDirPath() + "/plugins/";
         QString fileName;
@@ -405,7 +408,7 @@ bool Eyepiece::loadPlugin()
         else
             fileName = fPath2 + fName;
 
-	qWarning() << fileName;
+	qWarning() << "Plugin loader : will use this plugin : " << fileName;
 	//pluginLoader = new QPluginLoader ( pluginDirectory.absoluteFilePath ( fileName ) );
 	pluginLoader.setFileName ( pluginDirectory.absoluteFilePath ( fileName ) );
 	plugin = pluginLoader.instance();
